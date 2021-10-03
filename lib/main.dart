@@ -1,17 +1,19 @@
+import 'dart:async';
+import 'dart:isolate';
+
 import 'package:flutter/material.dart';
+import 'package:prueva_background/isolates2.dart';
 
 int numero_iteraciones = 0;
-void main() {
-  getTrackRecursive();
+void main() async {
+  start();
+
   runApp(MyApp());
 }
 
-void getTrackRecursive() {
-  Future.delayed(Duration(seconds: 5)).whenComplete(() {
-    numero_iteraciones++;
-    print('Numero de iteraciones: $numero_iteraciones');
-    getTrackRecursive();
-  });
+Future<bool> getTrackRecursive() async {
+  print('Haciendo algun proceso...');
+  return Future.value(true);
 }
 
 class MyApp extends StatelessWidget {
@@ -58,4 +60,27 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
         ));
   }
+}
+
+Isolate? isolate;
+
+start() async {
+  ReceivePort receiverPort = ReceivePort();
+  isolate = await Isolate.spawn(cronometro, receiverPort.sendPort);
+  receiverPort.listen(manejoMensajes, onDone: () {
+    print('Terminado');
+  });
+}
+
+cronometro(SendPort sendPort) async {
+  Timer.periodic(Duration(seconds: 3), (Timer timer) {
+    getTrackRecursive().then((value) {
+      numero_iteraciones++;
+      sendPort.send(numero_iteraciones);
+    });
+  });
+}
+
+manejoMensajes(dynamic data) {
+  print('numero_iteraciones: $data');
 }
