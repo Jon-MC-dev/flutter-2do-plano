@@ -2,17 +2,16 @@ import 'dart:async';
 import 'dart:isolate';
 
 import 'package:flutter/material.dart';
-import 'package:prueva_background/isolates2.dart';
+import 'package:background_location/background_location.dart';
 
 int numero_iteraciones = 0;
 void main() async {
-  start();
-
   runApp(MyApp());
 }
 
 Future<bool> getTrackRecursive() async {
-  print('Haciendo algun proceso...');
+  numero_iteraciones++;
+  print('numero_iteraciones: $numero_iteraciones');
   return Future.value(true);
 }
 
@@ -40,6 +39,19 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   @override
+  void initState() {
+    super.initState();
+    BackgroundLocation.startLocationService(distanceFilter: 1);
+
+    BackgroundLocation.getLocationUpdates((location) {
+      print(location.latitude);
+      print(location.longitude);
+      getTrackRecursive();
+      setState(() {});
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: AppBar(
@@ -60,27 +72,4 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
         ));
   }
-}
-
-Isolate? isolate;
-
-start() async {
-  ReceivePort receiverPort = ReceivePort();
-  isolate = await Isolate.spawn(cronometro, receiverPort.sendPort);
-  receiverPort.listen(manejoMensajes, onDone: () {
-    print('Terminado');
-  });
-}
-
-cronometro(SendPort sendPort) async {
-  Timer.periodic(Duration(seconds: 3), (Timer timer) {
-    getTrackRecursive().then((value) {
-      numero_iteraciones++;
-      sendPort.send(numero_iteraciones);
-    });
-  });
-}
-
-manejoMensajes(dynamic data) {
-  print('numero_iteraciones: $data');
 }
